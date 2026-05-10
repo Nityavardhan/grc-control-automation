@@ -61,6 +61,10 @@ CHART_BASE = dict(
     font=CHART_FONT,
     margin=dict(l=16, r=16, t=40, b=16),
 )
+# Merge helper: {**CHART_BASE, **overrides} avoids duplicate-kwarg TypeError
+# when an override needs to replace CHART_BASE's 'margin' or other keys.
+def _lay(**overrides):
+    return {**CHART_BASE, **overrides}
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
@@ -376,11 +380,7 @@ def gauge_chart(value: float) -> go.Figure:
             ],
         },
     ))
-    fig.update_layout(
-        **CHART_BASE,
-        height=240,
-        margin=dict(l=20, r=20, t=10, b=10),
-    )
+    fig.update_layout(**_lay(height=240, margin=dict(l=20, r=20, t=10, b=10)))
     return fig
 
 
@@ -400,12 +400,7 @@ def treemap_chart(by_type: dict) -> go.Figure:
         marker_line_width=2,
         marker_line_color="white",
     )
-    fig.update_layout(
-        **CHART_BASE,
-        height=240,
-        margin=dict(l=0, r=0, t=0, b=0),
-        coloraxis_showscale=False,
-    )
+    fig.update_layout(**_lay(height=240, margin=dict(l=0, r=0, t=0, b=0), coloraxis_showscale=False))
     return fig
 
 
