@@ -1,0 +1,37 @@
+# ============================================================
+# Application Settings
+# ============================================================
+
+app:
+  name: "GRC Control Automation Platform"
+  version: "1.0.0"
+  environment: "demo"
+
+data:
+  seed: 42                    # Fixed seed for reproducible demo data
+  employee_count: 210
+  terminated_ratio: 0.08      # 8% of workforce terminated (realistic)
+  on_leave_ratio: 0.03
+  access_records_per_employee: 3.2   # avg accesses per employee
+
+simulation:
+  # Intentional violations injected for demo realism
+  inject_terminated_access: 12
+  inject_dormant_access: 28
+  inject_excessive_privilege: 18
+  inject_sod_conflicts: 7
+  inject_mfa_missing: 15
+  inject_orphaned_accounts: 9
+  inject_unjustified_critical: 11
+
+output:
+  data_dir: "data"
+  evidence_dir: "outputs/evidence"
+  reports_dir: "outputs/reports"
+  timestamp_format: "%Y%m%d_%H%M%S"
+
+dashboard:
+  title: "GRC Control Automation"
+  subtitle: "Privileged Access Review — Continuous Monitoring"
+  refresh_seconds: 0          # 0 = no auto-refresh in demo mode
+  items_per_page: 25

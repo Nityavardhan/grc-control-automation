@@ -1,0 +1,235 @@
+# ============================================================
+# GRC Control Automation - Detection Rules Configuration
+# Company: DataStream Technologies
+# Framework: SOC 2 Type II | PCI DSS v4.0 | ISO 27001:2022
+# ============================================================
+
+company:
+  name: "DataStream Technologies"
+  industry: "Financial Services SaaS"
+  employee_count: ~200
+  compliance_frameworks:
+    - SOC 2 Type II
+    - PCI DSS v4.0
+    - ISO 27001:2022
+
+# ── Control: Privileged Access Review (PAR) ─────────────────
+control:
+  id: CTRL-IAM-001
+  name: Privileged Access Review
+  description: >
+    Automated continuous review of all privileged and standard access rights
+    to ensure appropriateness, principle of least privilege, and timely
+    revocation for terminated or role-changed employees.
+  owner: Security Team
+  frequency: Continuous (was quarterly)
+  frameworks:
+    - ref: SOC 2 CC6.2
+      description: Logical access is removed on a timely basis
+    - ref: PCI DSS 7.2.1
+      description: Access is based on need to know
+    - ref: ISO 27001 A.9.2.6
+      description: Access rights of employees are removed upon termination
+
+# ── Detection Rules ──────────────────────────────────────────
+detection_rules:
+
+  - id: RULE-001
+    name: Terminated User Active Access
+    type: TERMINATED_ACCESS
+    severity: CRITICAL
+    description: >
+      Detects active access rights belonging to terminated employees.
+      Access should be revoked within 24 hours of termination.
+    condition:
+      employee_status: terminated
+      access_is_active: true
+    sla_hours: 24
+    auto_remediate: false
+    evidence_required:
+      - access_listing
+      - termination_record
+      - revocation_ticket
+    frameworks:
+      - SOC 2 CC6.2
+      - PCI DSS 8.1.4
+      - ISO 27001 A.9.2.6
+
+  - id: RULE-002
+    name: Dormant Access — 90 Days
+    type: DORMANT_ACCESS
+    severity: HIGH
+    description: >
+      Detects access rights not exercised in 90+ days. Stale access
+      violates least-privilege and increases attack surface.
+    condition:
+      days_since_last_use: 90
+      access_is_active: true
+    sla_hours: 168   # 7 days to remediate
+    auto_remediate: false
+    evidence_required:
+      - access_listing
+      - last_use_log
+      - manager_confirmation
+    frameworks:
+      - SOC 2 CC6.3
+      - PCI DSS 7.2.4
+      - ISO 27001 A.9.2.5
+
+  - id: RULE-003
+    name: Excessive Privilege — Role Mismatch
+    type: EXCESSIVE_PRIVILEGE
+    severity: HIGH
+    description: >
+      Detects users with admin or elevated access that is not required
+      by their current role. Enforces principle of least privilege.
+    condition:
+      access_level: [admin, elevated]
+      role_requires_elevated: false
+    sla_hours: 72
+    auto_remediate: false
+    evidence_required:
+      - access_listing
+      - role_definition
+      - business_justification
+    frameworks:
+      - SOC 2 CC6.3
+      - PCI DSS 7.2.1
+      - ISO 27001 A.9.2.2
+
+  - id: RULE-004
+    name: Separation of Duties Conflict
+    type: SOD_CONFLICT
+    severity: CRITICAL
+    description: >
+      Detects users with conflicting access rights that violate separation
+      of duties (e.g., ability to both initiate and approve transactions).
+    condition:
+      conflicting_role_pairs:
+        - [financial_initiator, financial_approver]
+        - [code_developer, code_deployer]
+        - [user_admin, user_auditor]
+        - [data_entry, data_approver]
+    sla_hours: 48
+    auto_remediate: false
+    evidence_required:
+      - access_listing
+      - conflict_matrix
+      - waiver_or_compensating_control
+    frameworks:
+      - SOC 2 CC6.3
+      - PCI DSS 6.4.1
+      - ISO 27001 A.9.4.2
+
+  - id: RULE-005
+    name: MFA Not Enabled on Privileged Account
+    type: MFA_MISSING
+    severity: HIGH
+    description: >
+      Detects privileged accounts (admin/elevated) without multi-factor
+      authentication enabled. MFA is mandatory for all privileged access.
+    condition:
+      access_level: [admin, elevated]
+      mfa_enabled: false
+    sla_hours: 24
+    auto_remediate: false
+    evidence_required:
+      - mfa_status_report
+      - account_listing
+    frameworks:
+      - SOC 2 CC6.1
+      - PCI DSS 8.4.2
+      - ISO 27001 A.9.4.2
+
+  - id: RULE-006
+    name: Orphaned Account — No Active Owner
+    type: ORPHANED_ACCOUNT
+    severity: HIGH
+    description: >
+      Detects system accounts or service accounts with no active employee
+      owner. Ownerless accounts cannot be reviewed or approved.
+    condition:
+      owner_status: [terminated, not_found]
+      account_is_active: true
+    sla_hours: 72
+    auto_remediate: false
+    evidence_required:
+      - account_listing
+      - ownership_history
+    frameworks:
+      - SOC 2 CC6.2
+      - PCI DSS 8.2.1
+      - ISO 27001 A.9.2.1
+
+  - id: RULE-007
+    name: Critical System Access Without Justification
+    type: UNJUSTIFIED_CRITICAL_ACCESS
+    severity: MEDIUM
+    description: >
+      Detects access to critical-tier systems where no business justification
+      has been recorded. All critical system access requires documented approval.
+    condition:
+      system_criticality: critical
+      business_justification: null_or_empty
+    sla_hours: 120
+    auto_remediate: false
+    evidence_required:
+      - access_listing
+      - justification_form
+      - manager_approval
+    frameworks:
+      - SOC 2 CC6.3
+      - PCI DSS 7.2.2
+      - ISO 27001 A.9.2.3
+
+# ── Severity Scoring Weights ─────────────────────────────────
+scoring:
+  severity_base:
+    CRITICAL: 100
+    HIGH: 70
+    MEDIUM: 40
+    LOW: 15
+
+  system_criticality_multiplier:
+    critical: 1.00
+    high: 0.80
+    medium: 0.55
+    low: 0.30
+
+  access_level_multiplier:
+    admin: 1.00
+    elevated: 0.75
+    standard: 0.45
+
+# ── Notification & Escalation ────────────────────────────────
+notifications:
+  critical:
+    notify_within_hours: 1
+    recipients:
+      - CISO
+      - Security Team Lead
+      - System Owner
+  high:
+    notify_within_hours: 4
+    recipients:
+      - Security Team
+      - System Owner
+  medium:
+    notify_within_hours: 24
+    recipients:
+      - Security Team
+  low:
+    notify_within_hours: 72
+    recipients:
+      - Security Team
+
+# ── Evidence Retention ───────────────────────────────────────
+evidence:
+  retention_years: 7
+  formats:
+    - json
+    - csv
+    - html
+  auto_generate: true
+  include_timestamps: true
+  include_reviewer_signature: true
